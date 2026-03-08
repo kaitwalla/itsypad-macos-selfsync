@@ -9,6 +9,40 @@ private class EditorPanel: NSPanel {
     }
 }
 
+private class FileDropView: NSView {
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        registerForDraggedTypes([.fileURL])
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        registerForDraggedTypes([.fileURL])
+    }
+
+    override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
+        guard sender.draggingPasteboard.canReadObject(
+            forClasses: [NSURL.self],
+            options: [.urlReadingFileURLsOnly: true]
+        ) else { return [] }
+        return .copy
+    }
+
+    override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
+        let urls = sender.draggingPasteboard.readObjects(
+            forClasses: [NSURL.self],
+            options: [.urlReadingFileURLsOnly: true]
+        ) as? [URL] ?? []
+        guard !urls.isEmpty else { return false }
+        NotificationCenter.default.post(
+            name: EditorTextView.fileDropNotification,
+            object: nil,
+            userInfo: ["urls": urls]
+        )
+        return true
+    }
+}
+
 // MARK: - Toolbar identifiers
 
 private extension NSToolbarItem.Identifier {
@@ -310,6 +344,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation, NSTool
         toolbar.delegate = self
         toolbar.displayMode = .iconOnly
         panel.toolbar = toolbar
+
+        let dropView = FileDropView(frame: .zero)
+        dropView.autoresizingMask = [.width, .height]
+        hostingView.addSubview(dropView, positioned: .below, relativeTo: nil)
+        dropView.frame = hostingView.bounds
 
         editorWindow = panel
 
