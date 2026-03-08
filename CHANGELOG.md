@@ -4,6 +4,8 @@
 
 Features:
 - Drag-and-drop file opening now works even when no tabs are open (#70)
+- Plain text toggle in the tab context menu (#69)
+- `==highlight==` markdown syntax support (#65)
 
 Fixes:
 - Fixed French translations and localized the "Untitled" tab name (#67)
