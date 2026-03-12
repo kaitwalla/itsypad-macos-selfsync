@@ -108,8 +108,8 @@ class TabStore: ObservableObject {
         let tab = TabData()
         tabs.append(tab)
         selectedTabID = tab.id
-        CloudSyncEngine.shared.recordChanged(tab.id)
         G2SyncEngine.shared.schedulePush(id: tab.id)
+        ServerSyncEngine.shared.recordChanged(tab.id)
         scheduleSave()
     }
 
@@ -152,8 +152,8 @@ class TabStore: ObservableObject {
             url.stopAccessingSecurityScopedResource()
         }
         if isScratch {
-            CloudSyncEngine.shared.recordDeleted(id)
             G2SyncEngine.shared.scheduleDelete(id: id)
+            ServerSyncEngine.shared.recordDeleted(id)
         }
         tabs.remove(at: index)
 
@@ -194,8 +194,8 @@ class TabStore: ObservableObject {
         }
 
         if tab.fileURL == nil {
-            CloudSyncEngine.shared.recordChanged(id)
             G2SyncEngine.shared.schedulePush(id: id)
+            ServerSyncEngine.shared.recordChanged(id)
         }
 
         scheduleSave()
@@ -233,7 +233,7 @@ class TabStore: ObservableObject {
         tabs[index].languageLocked = true
         tabs[index].lastModified = Date()
         if tabs[index].fileURL == nil {
-            CloudSyncEngine.shared.recordChanged(id)
+            ServerSyncEngine.shared.recordChanged(id)
         }
         scheduleSave()
     }
@@ -387,8 +387,7 @@ class TabStore: ObservableObject {
         var result = CloudMergeResult()
 
         if let localIndex = tabs.firstIndex(where: { $0.id == data.id }) {
-            // During first sync, local tabs are authoritative – skip updates
-            if CloudSyncEngine.shared.isFirstSync { return }
+            // Only accept cloud version if it's newer than local
             // Only accept cloud version if it's newer than local
             guard data.lastModified > tabs[localIndex].lastModified else { return }
             if tabs[localIndex].content != data.content
@@ -432,8 +431,6 @@ class TabStore: ObservableObject {
     }
 
     func removeCloudTab(id: UUID) {
-        // During first sync, local tabs are authoritative – skip removals
-        if CloudSyncEngine.shared.isFirstSync { return }
         guard tabs.contains(where: { $0.id == id }) else { return }
 
         var result = CloudMergeResult()
@@ -485,7 +482,7 @@ class TabStore: ObservableObject {
         print("[G2] tabs \(before) -> \(tabs.count)")
 
         for id in removedIDs {
-            CloudSyncEngine.shared.recordDeleted(id)
+            ServerSyncEngine.shared.recordDeleted(id)
         }
 
         if tabs.isEmpty {

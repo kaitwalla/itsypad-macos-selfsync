@@ -137,7 +137,7 @@ class ClipboardStore {
         }
 
         if entry.kind == .text {
-            CloudSyncEngine.shared.recordChanged(entry.id)
+            ServerSyncEngine.shared.clipboardChanged(entry.id)
         }
 
         scheduleSave()
@@ -190,7 +190,7 @@ class ClipboardStore {
     func clearAll() {
         for entry in entries {
             if entry.kind == .text {
-                CloudSyncEngine.shared.recordDeleted(entry.id)
+                ServerSyncEngine.shared.clipboardDeleted(entry.id)
             }
             cleanupImageFile(for: entry)
         }
@@ -204,7 +204,7 @@ class ClipboardStore {
             let entry = entries.remove(at: index)
             cleanupImageFile(for: entry)
         }
-        CloudSyncEngine.shared.recordDeleted(id)
+        ServerSyncEngine.shared.clipboardDeleted(id)
         scheduleSave()
         NotificationCenter.default.post(name: Self.didChangeNotification, object: nil)
     }
@@ -246,7 +246,7 @@ class ClipboardStore {
         for entry in expired {
             cleanupImageFile(for: entry)
             if entry.kind == .text {
-                CloudSyncEngine.shared.recordDeleted(entry.id)
+                ServerSyncEngine.shared.clipboardDeleted(entry.id)
             }
         }
 

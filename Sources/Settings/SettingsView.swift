@@ -107,19 +107,22 @@ struct GeneralSettingsView: View {
                 Toggle(String(localized: "settings.general.show_in_menu_bar", defaultValue: "Show in menu bar"), isOn: $store.showInMenuBar)
                     .disabled(!store.showInDock)
                 VStack(alignment: .leading, spacing: 4) {
-                    Toggle(String(localized: "settings.general.icloud_sync", defaultValue: "iCloud sync"), isOn: Binding(
-                        get: { store.icloudSync },
-                        set: { store.setICloudSync($0) }
+                    Toggle(String(localized: "settings.general.server_sync", defaultValue: "Server sync"), isOn: Binding(
+                        get: { store.serverSyncEnabled },
+                        set: { store.setServerSync($0) }
                     ))
-                    Text(String(localized: "settings.general.icloud_sync_description", defaultValue: "Syncs scratch tabs and clipboard history (text only) across devices. File-backed tabs are not synced."))
+                    Text(String(localized: "settings.general.sync_description", defaultValue: "Syncs scratch tabs and clipboard history (text only) across devices via a self-hosted server. File-backed tabs are not synced."))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-                    if store.icloudSync {
+                    if store.serverSyncEnabled {
                         Text(lastSyncLabel)
                             .font(.footnote)
                             .foregroundStyle(.tertiary)
                             .onReceive(timer) { now = $0 }
                     }
+                }
+                if store.serverSyncEnabled {
+                    ServerSyncSettingsView(store: store)
                 }
             }
 
@@ -153,6 +156,54 @@ struct GeneralSettingsView: View {
         } else {
             let minutes = seconds / 60
             return String(localized: "settings.general.sync_minutes_ago", defaultValue: "Last synced: \(minutes) min ago")
+        }
+    }
+}
+
+struct ServerSyncSettingsView: View {
+    @ObservedObject var store: SettingsStore
+    @State private var url: String = ""
+    @State private var token: String = ""
+    @State private var testResult: String?
+    @State private var testing = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            TextField(String(localized: "settings.general.server_url", defaultValue: "Server URL"), text: $url)
+                .textFieldStyle(.roundedBorder)
+                .onAppear { url = store.serverSyncURL }
+                .onChange(of: url) { _, newValue in
+                    store.saveServerSyncSettings(url: newValue, token: token)
+                }
+            SecureField(String(localized: "settings.general.server_token", defaultValue: "Token"), text: $token)
+                .textFieldStyle(.roundedBorder)
+                .onAppear { token = store.serverSyncToken }
+                .onChange(of: token) { _, newValue in
+                    store.saveServerSyncSettings(url: url, token: newValue)
+                }
+            HStack {
+                Button(String(localized: "settings.general.test_connection", defaultValue: "Test connection")) {
+                    testing = true
+                    testResult = nil
+                    Task {
+                        let result = await ServerSyncEngine.shared.testConnection()
+                        await MainActor.run {
+                            testing = false
+                            testResult = result ?? String(localized: "settings.general.connection_ok", defaultValue: "Connected")
+                        }
+                    }
+                }
+                .disabled(testing || url.isEmpty)
+                if testing {
+                    ProgressView()
+                        .controlSize(.small)
+                }
+                if let testResult {
+                    Text(testResult)
+                        .font(.footnote)
+                        .foregroundStyle(testResult == String(localized: "settings.general.connection_ok", defaultValue: "Connected") ? .green : .red)
+                }
+            }
         }
     }
 }

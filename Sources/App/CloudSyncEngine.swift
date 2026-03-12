@@ -60,9 +60,7 @@ final class CloudSyncEngine: @unchecked Sendable {
 
     /// Call after app launch to start sync if the user has it enabled.
     func startIfEnabled() {
-        if SettingsStore.shared.icloudSync {
-            start()
-        }
+        // iCloud sync removed – server sync is used instead
     }
 
     // MARK: - Public API

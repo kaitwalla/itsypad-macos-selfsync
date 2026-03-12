@@ -88,8 +88,8 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(store.letterSpacing, 0.0)
     }
 
-    func testDefaultIcloudSync() {
-        XCTAssertTrue(store.icloudSync)
+    func testDefaultServerSyncDisabled() {
+        XCTAssertFalse(store.serverSyncEnabled)
     }
 
     func testDefaultClipboardViewMode() {
@@ -125,9 +125,9 @@ final class SettingsStoreTests: XCTestCase {
         XCTAssertEqual(defaults.double(forKey: "editorFontSize"), 16)
     }
 
-    func testIcloudSyncPersistsToDefaults() {
-        store.setICloudSync(true)
-        XCTAssertTrue(defaults.bool(forKey: "icloudSync"))
+    func testServerSyncPersistsToDefaults() {
+        store.setServerSync(true)
+        XCTAssertTrue(defaults.bool(forKey: "serverSyncEnabled"))
     }
 
     func testClipboardViewModePersistsToDefaults() {

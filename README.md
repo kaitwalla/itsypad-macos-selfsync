@@ -1,32 +1,21 @@
-# Itsypad
+# Itsypad (server sync fork)
 
-[![Tests](https://github.com/nickustinov/itsypad-macos/actions/workflows/tests.yml/badge.svg)](https://github.com/nickustinov/itsypad-macos/actions/workflows/tests.yml)
-[![Release](https://img.shields.io/github/v/release/nickustinov/itsypad-macos)](https://github.com/nickustinov/itsypad-macos/releases/latest)
-[![Downloads](https://img.shields.io/github/downloads/nickustinov/itsypad-macos/total)](https://github.com/nickustinov/itsypad-macos/releases)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Swift 5.9](https://img.shields.io/badge/swift-5.9-orange.svg)](https://swift.org)
-[![macOS 14+](https://img.shields.io/badge/macOS-14%2B-brightgreen.svg)](https://www.apple.com/macos/sonoma/)
-[![Homebrew](https://img.shields.io/badge/homebrew-tap-yellow.svg)](https://github.com/nickustinov/homebrew-tap)
+> **This is a fork of [nickustinov/itsypad-macos](https://github.com/nickustinov/itsypad-macos).** The only change is replacing iCloud sync with a self-hosted syncing server. Everything else is upstream.
 
-A tiny, fast scratchpad and clipboard manager for Mac. [itsypad.app](https://itsypad.app)
+A tiny, fast scratchpad and clipboard manager for Mac. See upstream for the original: [itsypad.app](https://itsypad.app)
 
-[![Download on the Mac App Store](https://developer.apple.com/app-store/marketing/guidelines/images/badge-download-on-the-mac-app-store.svg)](https://apps.apple.com/app/itsypad/id6758999332)
+## What's different in this fork
 
-![Itsypad screenshot](itsypad-screenshot-v2.png)
-
-❤️ If you enjoy Itsypad, grab the [App Store version](https://apps.apple.com/app/itsypad/id6758999332) to support development and get automatic updates. You can also download the DMG from [GitHub releases](https://github.com/nickustinov/itsypad-macos/releases) or install via Homebrew.
+iCloud sync (`CloudSyncEngine` / `CKSyncEngine`) has been replaced with a self-hosted sync server (`ServerSyncEngine`). You configure a server URL and token in settings, and tabs and clipboard history sync over a simple JSON API instead of CloudKit. This lets you sync without an iCloud account and keep your data on infrastructure you control.
 
 ## Features
 
 - **Text editor** — syntax highlighting, multi-tab, split view, find and replace, clickable links, lists and checklists
-- **Clipboard manager** — 1,000-item history, searchable, keyboard navigable, grid or panels layout, iCloud sync (text entries)
+- **Clipboard manager** — 1,000-item history, searchable, keyboard navigable, grid or panels layout
 - **Global hotkeys** — tap left ⌥ three times to show/hide, or define your own hotkey
 - **Lightweight** — nearly zero CPU and memory usage
 - **No AI, no telemetry** — your data stays on your machine
-- **Menu bar icon** — show or hide in menu bar
-- **Dock icon** — show or hide in Dock, as you prefer
-- **Open at login** — optional auto-start
-- **iCloud sync** — sync scratch tabs and clipboard history (text only) across Macs via iCloud
+- **Server sync** — sync scratch tabs and clipboard history (text only) across Macs via a self-hosted server
 - **12 languages** — English, Spanish, French, German, Russian, Japanese, Simplified Chinese, Traditional Chinese, Korean, Portuguese (Brazil), Italian, Polish
 
 ## Editor
@@ -83,7 +72,7 @@ Move lines up or down with **⌥⌘↑** / **⌥⌘↓**. Wrapped list lines ali
 - **Configurable cards** — adjust preview line count and font size in settings
 - **Delete entries** — remove individual items on hover
 - **Separate hotkey** — assign a dedicated global hotkey to show/hide
-- **iCloud sync** — text entries sync across devices alongside scratch tabs (up to 200 most recent)
+- **Server sync** — text entries sync across devices alongside scratch tabs via the self-hosted server
 
 ## Install
 
@@ -183,9 +172,9 @@ Both versions use the same CloudKit container (`iCloud.com.nickustinov.itsypad`)
 - **Direct/DMG:** Signed with "Developer ID Application" certificate and a Developer ID provisioning profile. The build script (`scripts/build-release.sh`) archives unsigned, embeds the profile, then manually signs with resolved entitlements (Xcode variables like `$(TeamIdentifierPrefix)` are expanded to literal values).
 - **App Store:** Signed automatically by Xcode with the App Store provisioning profile. Uploaded via Xcode Organizer or `xcodebuild -exportArchive`.
 
-### iCloud sync
+### Sync
 
-Both versions use CloudKit via `CKSyncEngine` for syncing scratch tabs and clipboard history. The `CloudSyncEngine` singleton manages the sync lifecycle. See the record schema and sync flow in the [iOS migration docs](../itsypad-ios/docs/cloudkit-sync.md).
+This fork replaces CloudKit sync with a self-hosted server. `ServerSyncEngine` pushes and pulls changes over a JSON API (POST `/api/sync`). Configure the server URL and bearer token in settings.
 
 ## Architecture
 
@@ -194,7 +183,8 @@ Sources/
 ├── App/
 │   ├── AppDelegate.swift                # Menu bar, toolbar, window, and panel setup
 │   ├── BonsplitRootView.swift           # SwiftUI root view rendering editor and clipboard tabs
-│   ├── CloudSyncEngine.swift            # CloudKit sync via CKSyncEngine for tabs and clipboard
+│   ├── CloudSyncEngine.swift            # CloudKit sync (upstream, disabled in this fork)
+│   ├── ServerSyncEngine.swift           # Self-hosted server sync for tabs and clipboard
 │   ├── G2SyncEngine.swift              # Even Realities G2 glasses sync (Labs)
 │   ├── KVSMigration.swift              # Legacy iCloud KVS data migration
 │   ├── Launch.swift                     # App entry point
@@ -241,8 +231,8 @@ Sources/
 │   ├── Assets.xcassets                  # App icon and custom images
 │   └── Localizable.xcstrings           # String catalog for 12 languages
 ├── Info.plist                           # Bundle metadata and document types
-├── itsypad.entitlements                 # App Store entitlements (sandbox, CloudKit, iCloud)
-└── itsypad-direct.entitlements          # Direct/DMG entitlements (adds network.client for update checker)
+├── itsypad.entitlements                 # App Store entitlements (sandbox, network)
+└── itsypad-direct.entitlements          # Direct/DMG entitlements (sandbox, network)
 Executable/
 └── main.swift                           # Executable target entry point
 Packages/

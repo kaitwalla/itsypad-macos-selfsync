@@ -177,8 +177,10 @@ class SettingsStore: ObservableObject {
         }
     }
 
-    @Published var icloudSync: Bool = false
     @Published var g2SyncEnabled: Bool = false
+    @Published var serverSyncEnabled: Bool = false
+    @Published var serverSyncURL: String = ""
+    @Published var serverSyncToken: String = ""
 
     func setG2Sync(_ enabled: Bool) {
         g2SyncEnabled = enabled
@@ -192,16 +194,28 @@ class SettingsStore: ObservableObject {
         NotificationCenter.default.post(name: .settingsChanged, object: nil)
     }
 
-    func setICloudSync(_ enabled: Bool) {
-        icloudSync = enabled
-        defaults.set(enabled, forKey: "icloudSync")
+    func setServerSync(_ enabled: Bool) {
+        serverSyncEnabled = enabled
+        defaults.set(enabled, forKey: "serverSyncEnabled")
         defaults.synchronize()
         if enabled {
-            CloudSyncEngine.shared.start()
+            ServerSyncEngine.shared.serverURL = serverSyncURL
+            ServerSyncEngine.shared.serverToken = serverSyncToken
+            ServerSyncEngine.shared.start()
         } else {
-            CloudSyncEngine.shared.stop()
+            ServerSyncEngine.shared.stop()
         }
         NotificationCenter.default.post(name: .settingsChanged, object: nil)
+    }
+
+    func saveServerSyncSettings(url: String, token: String) {
+        serverSyncURL = url
+        serverSyncToken = token
+        defaults.set(url, forKey: "serverSyncURL")
+        defaults.set(token, forKey: "serverSyncToken")
+        defaults.synchronize()
+        ServerSyncEngine.shared.serverURL = url
+        ServerSyncEngine.shared.serverToken = token
     }
 
     @Published var clipboardEnabled: Bool = true {
@@ -332,8 +346,10 @@ class SettingsStore: ObservableObject {
         let savedLineSpacing = defaults.double(forKey: "lineSpacing")
         lineSpacing = savedLineSpacing > 0 ? savedLineSpacing : 1.0
         letterSpacing = defaults.double(forKey: "letterSpacing")
-        icloudSync = defaults.object(forKey: "icloudSync") as? Bool ?? true
         g2SyncEnabled = defaults.bool(forKey: "g2SyncEnabled")
+        serverSyncEnabled = defaults.bool(forKey: "serverSyncEnabled")
+        serverSyncURL = defaults.string(forKey: "serverSyncURL") ?? ""
+        serverSyncToken = defaults.string(forKey: "serverSyncToken") ?? ""
         clipboardEnabled = defaults.object(forKey: "clipboardEnabled") as? Bool ?? true
         if let data = defaults.data(forKey: shortcutKeysKey),
            let keys = try? JSONDecoder().decode(ShortcutKeys.self, from: data) {
